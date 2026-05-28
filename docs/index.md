@@ -120,6 +120,19 @@ After the run, the result is saved in the `/tmp/phantom_res_inference` as numpy 
 
 raw, model output, difference
 
+
+Custom command
+```
+uv run python3 ./src/snraware/projects/mri/denoising/run_inference.py --input_dir ~/data/low-field-in-vivo-data --output_dir ~/data/snr-aware-denoising/medium/ --saved_model_path ./medium/snraware_medium_model.pts --saved_config_pa
+th ./medium/snraware_medium_model.yaml --batch_size 1 --input_fname pd_invivo_3d.npy --no_gmap
+```
+
+
+```
+python ./src/snraware/projects/mri/denoising/run_inference.py --input_dir ~/data/low-field-in-vivo-data --output_dir ~/data/snr-aware-denoising/medium/ --saved_model_path ./medium/snraware_medium_model.pts --saved_config_pa
+th ./medium/snraware_medium_model.yaml --batch_size 1 --input_fname pd_invivo_3d.npy --no_gmap
+```
+
 ## Direct intended uses
 SNRAware is shared for research and technical development purposes only, to denoisegit  MR images.
 

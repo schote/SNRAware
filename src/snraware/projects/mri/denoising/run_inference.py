@@ -2,6 +2,7 @@
 
 import argparse
 import os
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -18,6 +19,17 @@ from snraware.projects.mri.denoising.inference_model import (
 
 # -------------------------------------------------------------------------------------------------
 
+def load_input(input_dir, input_fname):
+    input_dir = Path(input_dir)
+    if input_fname.endswith(".npy"):
+        image = np.load(input_dir / input_fname)
+    else:
+        image = (
+            np.load(input_dir / f"{input_fname}_real.npy") + 1j * np.load(input_dir / f"{input_fname}_imag.npy")
+        )
+    # Normalize input image to [0, 1]
+    image = (image - np.min(image)) / (np.max(image) - np.min(image))
+    return image
 
 def run_inference(
     saved_model_path,
@@ -53,10 +65,8 @@ def run_inference(
 
     # -------------------------------------------
     # load the data
-    image = (
-        np.load(os.path.join(input_dir, f"{input_fname}_real.npy"))
-        + np.load(os.path.join(input_dir, f"{input_fname}_imag.npy")) * 1j
-    )
+    image = load_input(input_dir, input_fname)
+
     image = np.squeeze(image)
     if image.ndim == 2:
         image = image[:, :, np.newaxis]
@@ -90,7 +100,7 @@ def run_inference(
     print(
         f"{Fore.YELLOW}Inference time {end_timer(t=t0, enable=True, verbose=False) / 1e3:.2f} sec{Style.RESET_ALL}"
     )
-    return output
+    return output, image
 
 
 # -------------------------------------------------------------------------------------------------
@@ -146,6 +156,10 @@ def arg_parser():
         "--no_gmap", action="store_true", help="if set, do not load gmap, but set gmap as all ones"
     )
 
+    parser.add_argument(
+        "--show", action="store_true", help="if set, show input and output images"
+    )
+
     return parser.parse_args()
 
 
@@ -174,7 +188,7 @@ def main():
         os.makedirs(args.output_dir)
         print(f"{Fore.YELLOW}Create output_dir {args.output_dir}{Style.RESET_ALL}")
 
-    output = run_inference(
+    output_image, input_image = run_inference(
         args.saved_model_path,
         args.saved_config_path,
         args.input_dir,
@@ -188,10 +202,37 @@ def main():
         device=device,
     )
 
-    print(f"save results in {args.output_dir}, output - {output.shape}")
-    np.save(os.path.join(args.output_dir, "output_real.npy"), output.real)
-    np.save(os.path.join(args.output_dir, "output_imag.npy"), output.imag)
+    output_fname = args.input_fname.split(".")[0] + "_output.npy"
+    input_fname = args.input_fname.split(".")[0] + "_input.npy"
+    result_dir = Path(args.output_dir)
 
+    print(f"Saving result to {result_dir} with filename {output_fname}, output - {output_image.shape}")
+    # Save complex data
+    np.save(result_dir / output_fname, output_image)
+    # Save real/imag data
+    # np.save(os.path.join(args.output_dir, "output_real.npy"), output.real)
+    # np.save(os.path.join(args.output_dir, "output_imag.npy"), output.imag)
+    # Save input image
+    np.save(result_dir / input_fname, input_image)
+
+    if args.show:
+        import matplotlib.pyplot as plt
+
+        original = load_input(args.input_dir, args.input_fname)
+        original_mag = np.squeeze(np.abs(original))
+        original_mag = (original_mag - np.min(original_mag)) / (np.max(original_mag) - np.min(original_mag))
+
+        output_mag = np.squeeze(np.abs(output))
+        output_mag = (output_mag - np.min(output_mag)) / (np.max(output_mag) - np.min(output_mag))
+
+        k = np.argmax(np.sum(original_mag, axis=(-2, -1)))
+
+        fig, ax = plt.subplots(1, 2)
+        vmin = 0
+        vmax = np.max(original_mag[k])
+        ax[0].imshow(original_mag[k], cmap="gray", vmin=vmin, vmax=vmax)
+        ax[1].imshow(output_mag[k], cmap="gray", vmin=vmin, vmax=vmax)
+        plt.show()
 
 if __name__ == "__main__":
     main()

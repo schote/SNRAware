@@ -3,7 +3,7 @@ name = "snraware"
 description = "A deep learning imaging AI framework"
 version = "0.1.0"
 readme = "README.md"
-requires-python = ">=3.12,<=3.14"
+requires-python = ">=3.12,<=3.14.5"
 authors = [
     {name = "Hui Xue", email = "xueh@microsoft.com"},
 ]
@@ -16,7 +16,6 @@ dependencies = [
     "typing_extensions",
     "click",
     "h5py",
-    "opencv-python",
     "pathlib",
     "PyWavelets",
     "pytorch-wavelets",
@@ -46,6 +45,7 @@ dependencies = [
     "hydra_colorlog",
     "pytest>=8.4.2",
     "dvc[azure]",
+    "opencv-python-headless>=4.13.0.92",
 ]
 
 [project.urls]
